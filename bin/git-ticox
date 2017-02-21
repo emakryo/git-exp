@@ -1,0 +1,15 @@
+#!/bin/bash
+
+subcommand=$1
+
+case "$subcommand" in
+	"run" )
+		echo "Run run.sh";;
+	"list" )
+		echo "List runs";;
+	"switch" )
+		echo "Switch the run";;
+	* )
+		echo "Unknown command"
+		exit 255;;
+esac
