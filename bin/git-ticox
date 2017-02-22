@@ -2,31 +2,56 @@
 
 subcommand=$1
 
-EXE="$(git rev-parse --sho-cdup)run.sh"
+EXE="$(git rev-parse --show-cdup)run.sh"
 
-case "$subcommand" in
-	"run" )
-		echo "Run $EXE";;
-	"list" )
-		echo "List runs";;
-	"switch" )
-		echo "Switch the run";;
-	* )
-		echo "Unknown command"
-		exit 255;;
-esac
+print_help() {
+	echo "\
+usage: git ticox run <new branch>
+       git ticox show"
+}
 
-run() {
+pre_run() {
 	local cur_branch=$(git rev-parse --abbrev-ref HEAD)
 	local root_dir=$(git rev-parse --show-cdup)
 	local new_branch=$1
-	git checkout -b $new_branch
-	git add ./$root_dir
-	git commit
-	local result_dir=./${root_dir}result
+	git checkout -b $new_branch || exit 255
+	local result_dir=./${root_dir}result/$new_branch
+	rm -rf $result_dir
 	mkdir -p $result_dir
-	rm -rf $result_dir/*
-	./$EXE
-	git add $result_dir
-	git commit -m "add result"
+	git add ./$root_dir || exit 255
+	#git commit #-m "Automatic commit: start experiment: $EXE" || exit 255
+	git commit --allow-empty || exit 255
+	run $EXE $result_dir $new_branch > $result_dir/stdout 2> $result_dir/stderr &
 }
+
+run() {
+	local exe=$1
+	local result_dir=$2
+	local branch=$3
+	./$1 $result_dir
+	git checkout -q $branch || exit 255
+	git add $result_dir || exit 255
+	git commit -q -m "Automatic commit: finish experiment" || exit 255
+}
+
+show() {
+	git log --graph --all --oneline --decorate=auto
+}
+
+
+case "$subcommand" in
+	"run" )
+		echo "Run $EXE"
+		if [ $# -eq 2 ]; then
+			shift
+			pre_run $@
+		else
+			print_help
+		fi;;
+	"show" )
+		show;;
+	* )
+		print_help
+		exit 255;;
+esac
+
