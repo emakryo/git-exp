@@ -11,31 +11,30 @@ usage: git ticox run <new branch>
 }
 
 pre_run() {
-	local cur_branch=$(git rev-parse --abbrev-ref HEAD)
-	local root_dir=$(git rev-parse --show-cdup)
-	local new_branch=$1
-	git checkout -b $new_branch || exit 255
-	local result_dir=./${root_dir}result/$new_branch
+	cur_branch=$(git rev-parse --abbrev-ref HEAD)
+	root_dir=$(git rev-parse --show-cdup)
+	new_branch=$1
+	git checkout -B $new_branch || exit 255
+	result_dir=./${root_dir}result/$new_branch
 	rm -rf $result_dir
 	mkdir -p $result_dir
 	git add ./$root_dir || exit 255
 	#git commit #-m "Automatic commit: start experiment: $EXE" || exit 255
 	git commit --allow-empty || exit 255
-	run $EXE $result_dir $new_branch > $result_dir/stdout 2> $result_dir/stderr &
+	commit_message="$(git log --format=%B -n 1)"
+	git commit --allow-empty --amend -m "Start experiment" -m "$commit_message" || exit 255
+	run > $result_dir/stdout 2> $result_dir/stderr &
 }
 
 run() {
-	local exe=$1
-	local result_dir=$2
-	local branch=$3
-	./$1 $result_dir
-	git checkout -q $branch || exit 255
+	./$EXE $result_dir
+	git checkout -q $new_branch || exit 255
 	git add $result_dir || exit 255
-	git commit -q -m "Automatic commit: finish experiment" || exit 255
+	git commit -q -m "Finish experiment" -m "$commit_message" || exit 255
 }
 
 show() {
-	git log --graph --all --oneline --decorate=auto
+	git log --graph --all --oneline --decorate=full
 }
 
 
