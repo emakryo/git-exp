@@ -2,9 +2,11 @@
 
 subcommand=$1
 
+EXE="$(git rev-parse --sho-cdup)run.sh"
+
 case "$subcommand" in
 	"run" )
-		echo "Run run.sh";;
+		echo "Run $EXE";;
 	"list" )
 		echo "List runs";;
 	"switch" )
@@ -13,3 +15,18 @@ case "$subcommand" in
 		echo "Unknown command"
 		exit 255;;
 esac
+
+run() {
+	local cur_branch=$(git rev-parse --abbrev-ref HEAD)
+	local root_dir=$(git rev-parse --show-cdup)
+	local new_branch=$1
+	git checkout -b $new_branch
+	git add ./$root_dir
+	git commit
+	local result_dir=./${root_dir}result
+	mkdir -p $result_dir
+	rm -rf $result_dir/*
+	./$EXE
+	git add $result_dir
+	git commit -m "add result"
+}
