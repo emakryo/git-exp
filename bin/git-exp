@@ -1,0 +1,45 @@
+#!/bin/bash
+
+print_help() {
+	echo "
+usage: git exp command ...
+"
+}
+
+count() {
+	c=$(git config exp.count)
+	if [ $c ]; then
+		echo $c
+	else
+		echo 0
+	fi
+}
+
+run() {
+	local cur_branch=$(git rev-parse --abbrev-ref HEAD)
+	local root_dir=$(git rev-parse --show-cdup)
+	local new_branch=exp$(count)
+	local result_dir=./${root_dir}result/$new_branch
+	if [ -e $result_dir ]; then
+		echo "File exists: $result_dir" >&2
+		exit 255
+	fi
+	local cmd=$@
+	mkdir -p $result_dir
+	git checkout -b $new_branch || exit 255
+	git config exp.count $(($(count)+1))
+	git add ./$root_dir || exit 255
+	git commit --allow-empty -m "exp: start $cmd" || exit 255
+
+	$@ -o $result_dir > >(tee $result_dir/stdout) 2> >(tee $result_dir/stderr >&2)
+	status=$?
+	git checkout -q $new_branch || exit 255
+	git add $result_dir || exit 255
+	git commit -q -m "exp: finish with status $status" || exit 255
+}
+
+if [ $@ ]; then
+	run $@
+else
+	print_help
+fi

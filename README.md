@@ -1,3 +1,3 @@
-# Git-ticox
+# Git-exp
 
-Git subcommands for TIme-COmsuming eXperiments.
+Git subcommands for experiment
