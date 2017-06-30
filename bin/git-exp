@@ -15,8 +15,8 @@ count() {
 	fi
 }
 
+# save current change, execute command and save the result
 run() {
-	local cur_branch=$(git rev-parse --abbrev-ref HEAD)
 	local root_dir=$(git rev-parse --show-cdup)
 	local new_branch=exp$(count)
 	local result_dir=./${root_dir}result/$new_branch
@@ -33,9 +33,14 @@ run() {
 
 	$@ -o $result_dir > >(tee $result_dir/stdout) 2> >(tee $result_dir/stderr >&2)
 	status=$?
+
+	local cur_branch=$(git rev-parse --abbrev-ref HEAD)
+	git stash
 	git checkout -q $new_branch || exit 255
 	git add $result_dir || exit 255
 	git commit -q -m "exp: finish with status $status" || exit 255
+	git checkout -q $cur_branch
+	git stash pop
 }
 
 if [ $@ ]; then
